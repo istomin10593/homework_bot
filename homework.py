@@ -1,11 +1,21 @@
-...
+import os
+
+import logging
+import requests
+import time
+import telegram
+
+from telegram import ReplyKeyboardMarkup
+from telegram.ext import CommandHandler, Updater
+
+from dotenv import load_dotenv
 
 load_dotenv()
 
 
-PRACTICUM_TOKEN = ...
-TELEGRAM_TOKEN = ...
-TELEGRAM_CHAT_ID = ...
+PRACTICUM_TOKEN = os.getenv('TOKEN_YP')
+TELEGRAM_TOKEN = os.getenv('TOKEN_TG')
+TELEGRAM_CHAT_ID = os.getenv('TG_ID')
 
 RETRY_TIME = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
@@ -20,7 +30,7 @@ HOMEWORK_STATUSES = {
 
 
 def send_message(bot, message):
-    ...
+    bot.send_message(TELEGRAM_CHAT_ID,message )
 
 
 def get_api_answer(current_timestamp):
@@ -32,7 +42,6 @@ def get_api_answer(current_timestamp):
 
 def check_response(response):
 
-    ...
 
 
 def parse_status(homework):
@@ -49,7 +58,10 @@ def parse_status(homework):
 
 
 def check_tokens():
-    ...
+    if PRACTICUM_TOKEN and TELEGRAM_TOKEN and TELEGRAM_CHAT_ID:
+        return True
+    else:
+        return False
 
 
 def main():
