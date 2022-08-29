@@ -1,6 +1,6 @@
 import os
 
-import logging
+import logging.config
 import requests
 import time
 import telegram
@@ -10,8 +10,18 @@ import telegram
 
 from dotenv import load_dotenv
 
+logging.config.fileConfig('logging.conf')
+
 load_dotenv()
 
+# logging.basicConfig(
+#     # format='%(asctime)s -%(levelname)s - %(message)s - %(name)s',
+#     level=logging.DEBUG,
+#     filemode='w',
+#     filename='main.log')
+
+
+logger = logging.getLogger('simpleExample')
 
 PRACTICUM_TOKEN = os.getenv('TOKEN_YP')
 TELEGRAM_TOKEN = os.getenv('TOKEN_TG')
@@ -35,12 +45,14 @@ def send_message(bot, message):
 
 def get_api_answer(current_timestamp):
     timestamp = current_timestamp or int(time.time())
-    params = {'from_date': 0}
-
-    response = requests.get(ENDPOINT, headers=HEADERS, params=params)
-    response = response.json()
-
-    return response
+    params = {'from_date':  timestamp}
+    try:
+        response = requests.get(ENDPOINT, headers=HEADERS, params=params)
+    except Exception as error:
+        logging.error(f'Ошибка при запросе к основному API: {error}')
+    else:
+        response = response.json()
+        return response
 
 
 def check_response(response):
@@ -65,10 +77,11 @@ def parse_status(homework):
 
 
 def check_tokens():
-    if PRACTICUM_TOKEN and TELEGRAM_TOKEN and TELEGRAM_CHAT_ID:
-        return True
-    else:
-        return False
+    if not PRACTICUM_TOKEN and not TELEGRAM_TOKEN and not TELEGRAM_CHAT_ID:
+        logging.critical('''
+        Missing required environment variables.
+         There are  examples environment variables
+         in the file ".env.example"''')
 
 
 def main():
@@ -87,21 +100,20 @@ def main():
     current_timestamp = response.get("current_date")
     # time.sleep(RETRY_TIME)
 
-    # while True:
-    #     try:
-    #         response = get_api_answer(current_timestamp)
-    #         homework = check_response(response)[0]
-    #         message = parse_status(homework)
-    #         send_message(bot, message)
-    #         current_timestamp = ...
-    #         time.sleep(RETRY_TIME)
-
-    #     except Exception as error:
-    #         message = f'Сбой в работе программы: {error}'
-    #         ...
-    #         time.sleep(RETRY_TIME)
-    #     else:
-    #         ...
+    while True:
+        try:
+            response = get_api_answer(current_timestamp)
+            homework = check_response(response)[0]
+            message = parse_status(homework)
+            send_message(bot, message)
+            current_timestamp = ...
+            time.sleep(RETRY_TIME)
+        except Exception as error:
+            message = f'Сбой в работе программы: {error}'
+            ...
+            time.sleep(RETRY_TIME)
+        else:
+            ...
 
 
 if __name__ == '__main__':
