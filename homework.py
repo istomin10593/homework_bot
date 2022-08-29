@@ -44,11 +44,11 @@ def get_api_answer(current_timestamp: int) -> dict:
     params = {'from_date':  timestamp}
 
     response = requests.get(ENDPOINT, headers=HEADERS, params=params)
-    status = response.status_code
 
-    if status != HTTPStatus.OK:
+    if response.status_code != HTTPStatus.OK:
         logging.error(
-            f'Not available ENDPOINT:{ENDPOINT}. Status code: {status}')
+            f'Not available ENDPOINT:{ENDPOINT}.'
+            f'Status code: {response.status_code}')
         raise HTTPStatusError(response)
     else:
         return response.json()
@@ -57,14 +57,14 @@ def get_api_answer(current_timestamp: int) -> dict:
 def check_response(response: dict) -> list:
     """Check response from API"""
     if not isinstance(response, dict):
-        message = 'Response contains empty dict'
-        logging.error(message)
-        raise KeyError(message)
-
-    if response == {}:
         message = f'Expected type data - dict, received - {type(response)}'
         logging.error(message)
         raise TypeError(message)
+
+    if response == {}:
+        message = 'Response contains empty dict'
+        logging.error(message)
+        raise KeyError(message)
 
     if not isinstance(response.get('homeworks'), list):
         type_responce = type(response.get('homeworks'))
@@ -106,6 +106,7 @@ def check_tokens():
 def main():
     """Main function"""
     storage_messages = {}
+    storage_errors = {}
 
     if not check_tokens():
         logging.critical('''
@@ -131,11 +132,12 @@ def main():
                     storage_messages[homework['homework_name']] = message
             current_timestamp = response.get('current_date')
         except Exception as error:
-            message = f'Сбой в работе программы: {error}'
-            if storage_messages[str(error)] != message:
-                logging.error(message)
-                send_message(bot, message)
-                storage_messages[str(error)] = message
+            message = f'Program error: {error}'
+            for save_error in storage_errors:
+                if storage_errors[save_error] != message:
+                    logging.error(message)
+                    send_message(bot, message)
+                    storage_errors[str(error)] = message
         finally:
             time.sleep(RETRY_TIME)
 
