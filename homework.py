@@ -72,12 +72,12 @@ def check_response(response: dict) -> list:
         logging.error(message)
         raise TypeError(message)
 
-    if any([response.get('current_data'), response.get('homeworks')]):
-        message = f'Missing expected keys in API response'
+    if ('current_date' in response) and ('homeworks' in response):
+        return response.get('homeworks')
+    else:
+        message = 'Missing expected keys in API response'
         logging.error(message)
         raise KeyError(message)
-    
-    return response.get('homeworks')
 
 
 def parse_status(homework):
