@@ -5,8 +5,8 @@ import requests
 import time
 import telegram
 
-from telegram import ReplyKeyboardMarkup
-from telegram.ext import CommandHandler, Updater
+# from telegram import ReplyKeyboardMarkup
+# from telegram.ext import CommandHandler, Updater
 
 from dotenv import load_dotenv
 
@@ -35,7 +35,7 @@ def send_message(bot, message):
 
 def get_api_answer(current_timestamp):
     timestamp = current_timestamp or int(time.time())
-    params = {'from_date': timestamp}
+    params = {'from_date': 0}
 
     response = requests.get(ENDPOINT, headers=HEADERS, params=params)
     response = response.json()
@@ -44,23 +44,22 @@ def get_api_answer(current_timestamp):
 
 
 def check_response(response):
-    if len(response) == 2 and 'homeworks' in response and 'current_data' in response:
+    if len(response) == 2 and 'homeworks' in response and 'current_date' in response:
         list_hm = response.get('homeworks')
         return list_hm
     return False
 
 
-
-
 def parse_status(homework):
-    homework_name = ...
-    homework_status = ...
+    homework_name = homework.get("homework_name")
+    homework_status = homework.get("status")
 
-    ...
-
-    verdict = ...
-
-    ...
+    if homework_status == 'approved':
+        verdict = HOMEWORK_STATUSES.get('approved')
+    elif homework_status == 'reviewing':
+        verdict = HOMEWORK_STATUSES.get('reviewing')
+    elif homework_status == 'rejected':
+        verdict = HOMEWORK_STATUSES.get('rejected')
 
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
@@ -78,25 +77,31 @@ def main():
     ...
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
-    current_timestamp = int(time.time())
+    # current_timestamp = int(time.time())
+    current_timestamp = 0
+    response = get_api_answer(current_timestamp)
+    homework = check_response(response)[0]
+    message = parse_status(homework)
+    # print(message)
+    send_message(bot, message)
+    current_timestamp = response.get("current_date")
+    # time.sleep(RETRY_TIME)
 
-    ...
+    # while True:
+    #     try:
+    #         response = get_api_answer(current_timestamp)
+    #         homework = check_response(response)[0]
+    #         message = parse_status(homework)
+    #         send_message(bot, message)
+    #         current_timestamp = ...
+    #         time.sleep(RETRY_TIME)
 
-    while True:
-        try:
-            response = get_api_answer(current_timestamp)
-
-            ...
-
-            current_timestamp = ...
-            time.sleep(RETRY_TIME)
-
-        except Exception as error:
-            message = f'Сбой в работе программы: {error}'
-            ...
-            time.sleep(RETRY_TIME)
-        else:
-            ...
+    #     except Exception as error:
+    #         message = f'Сбой в работе программы: {error}'
+    #         ...
+    #         time.sleep(RETRY_TIME)
+    #     else:
+    #         ...
 
 
 if __name__ == '__main__':
