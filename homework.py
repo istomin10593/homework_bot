@@ -30,17 +30,25 @@ HOMEWORK_STATUSES = {
 
 
 def send_message(bot, message):
-    bot.send_message(TELEGRAM_CHAT_ID,message )
+    bot.send_message(TELEGRAM_CHAT_ID, message)
 
 
 def get_api_answer(current_timestamp):
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
 
-    ...
+    response = requests.get(ENDPOINT, headers=HEADERS, params=params)
+    response = response.json()
+
+    return response
 
 
 def check_response(response):
+    if len(response) == 2 and 'homeworks' in response and 'current_data' in response:
+        list_hm = response.get('homeworks')
+        return list_hm
+    return False
+
 
 
 
@@ -76,7 +84,7 @@ def main():
 
     while True:
         try:
-            response = ...
+            response = get_api_answer(current_timestamp)
 
             ...
 
