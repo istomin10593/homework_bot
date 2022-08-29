@@ -41,7 +41,7 @@ def send_message(bot: telegram.Bot, message: str) -> None:
 def get_api_answer(current_timestamp: int) -> dict:
     """Send request to API and get response."""
     timestamp = current_timestamp or int(time.time())
-    params = {'from_date':  timestamp}
+    params = {'from_date': timestamp}
 
     response = requests.get(ENDPOINT, headers=HEADERS, params=params)
 
@@ -55,7 +55,7 @@ def get_api_answer(current_timestamp: int) -> dict:
 
 
 def check_response(response: dict) -> list:
-    """Check response from API"""
+    """Check response from API."""
     if not isinstance(response, dict):
         message = f'Expected type data - dict, received - {type(response)}'
         logging.error(message)
@@ -72,17 +72,16 @@ def check_response(response: dict) -> list:
         logging.error(message)
         raise TypeError(message)
 
-    try:
-        response.get('current_data')
-        list_hm = response.get('homeworks')
-    except Exception as error:
-        logging.error(f'Missing expected keys in API response: {error}')
-    else:
-        return list_hm
+    if any([response.get('current_data'), response.get('homeworks')]):
+        message = f'Missing expected keys in API response'
+        logging.error(message)
+        raise KeyError(message)
+    
+    return response.get('homeworks')
 
 
 def parse_status(homework):
-    '''Handle data from homework and return message with status'''
+    """Handle data from homework and return message with status."""
     homework_name = homework.get("homework_name")
     homework_status = homework.get("status")
 
@@ -98,13 +97,12 @@ def parse_status(homework):
 
 
 def check_tokens():
-    '''Check necessary environment variables'''
-
+    """Check necessary environment variables."""
     return all([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID])
 
 
 def main():
-    """Main function"""
+    """Main function."""
     storage_messages = {}
     storage_errors = {}
 
