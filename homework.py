@@ -1,4 +1,5 @@
 import logging.config
+import json
 import requests
 import os
 import sys
@@ -20,8 +21,10 @@ RETRY_TIME = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
-
-HOMEWORK_STATUSES = {
+# Привет!
+# Код писался по уже готовому шаблону от YP и часть переменных и функций были
+# даны , включая dict со status. Я это принял, как ТЗ и ничего не менял.
+HOMEWORK_VERDICTS = {
     'approved': 'Работа проверена: ревьюеру всё понравилось. Ура!',
     'reviewing': 'Работа взята на проверку ревьюером.',
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
@@ -31,11 +34,15 @@ HOMEWORK_STATUSES = {
 def send_message(bot: telegram.Bot, message: str) -> None:
     """Send message in Telegram bot."""
     try:
+        logging.info('The start of sending the message')
         bot.send_message(TELEGRAM_CHAT_ID, message)
     except Exception as error:
-        logging.error(f'Message sending error: {error}')
+        message_err = f'''Error sending messages: {message}
+        to telegram chat with id: {TELEGRAM_CHAT_ID} - {error}.'''
+        logging.error(message_err)
+        raise KeyError(message_err)
     else:
-        logging.info('Message successfully sent')
+        logging.info('The message successfully sent')
 
 
 def get_api_answer(current_timestamp: int) -> dict:
@@ -50,8 +57,13 @@ def get_api_answer(current_timestamp: int) -> dict:
             f'Not available ENDPOINT:{ENDPOINT}.'
             f'Status code: {response.status_code}')
         raise HTTPStatusError(response)
-    else:
+
+    try:
         return response.json()
+    except json.decoder.JSONDecodeError:
+        message = 'Transfotmation error JSON in python data'
+        logging.error(message)
+        raise KeyError(message)
 
 
 def check_response(response: dict) -> list:
@@ -72,12 +84,12 @@ def check_response(response: dict) -> list:
         logging.error(message)
         raise TypeError(message)
 
-    if ('current_date' in response) and ('homeworks' in response):
-        return response.get('homeworks')
-    else:
+    if ('current_date' not in response) and ('homeworks' not in response):
         message = 'Missing expected keys in API response'
         logging.error(message)
         raise KeyError(message)
+
+    return response.get('homeworks')
 
 
 def parse_status(homework):
@@ -86,7 +98,7 @@ def parse_status(homework):
     homework_status = homework.get("status")
 
     try:
-        verdict = HOMEWORK_STATUSES[homework_status]
+        verdict = HOMEWORK_VERDICTS[homework_status]
     except Exception as error:
         message = f'''Homework status in response
         from API does not exist {error}'''
@@ -107,11 +119,12 @@ def main():
     storage_errors = {}
 
     if not check_tokens():
-        logging.critical('''
+        message = '''
         Missing required environment variables.
          There are  examples environment variables
-         in the file ".env.example".''')
-        exit()
+         in the file ".env.example".'''
+        logging.critical(message)
+        sys.exit(message)
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
@@ -122,7 +135,7 @@ def main():
             homeworks = check_response(response)
             if len(homeworks) == 0:
                 logging.debug('No homeworks to check.')
-                break
+                continue
             for homework in homeworks:
                 message = parse_status(homework)
                 if storage_messages.get(homework['homework_name']) != message:
@@ -143,7 +156,9 @@ def main():
 if __name__ == '__main__':
     logging.basicConfig(
         level=logging.DEBUG,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        stream=sys.stdout
+        format='''
+        %(asctime)s - %(name)s - %(levelname)s -%(lineno)d - %(message)s
+        ''',
+        stream=sys.stdout,
     )
     main()
